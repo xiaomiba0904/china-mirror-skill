@@ -1,7 +1,7 @@
 ---
 name: china-mirror
-description: "国内镜像源加速。生成包下载命令时自动添加大厂/高校背书的可信镜像参数。触发：安装包、下载依赖、npm/pip/uv/cargo/go 等包管理操作。"
-version: 2.0.0
+description: "国内镜像源加速。生成包下载命令时自动添加大厂/高校背书的可信镜像参数。触发：安装包、下载依赖、npm/pip/uv/cargo/go/docker/maven/nuget 等包管理操作。"
+version: 2.1.0
 ---
 
 # China Mirror — 国内镜像源自动添加
@@ -12,14 +12,172 @@ version: 2.0.0
 
 **只使用以下大厂/高校背书的可信镜像源：**
 
+## 支持命令行参数的工具
+
 | 工具 | 自动添加参数 | 镜像源 | 背书方 |
 |------|-------------|--------|--------|
 | npm | `--registry=https://registry.npmmirror.com` | 淘宝 npmmirror | 阿里巴巴 ✅ |
 | pnpm | `--registry=https://registry.npmmirror.com` | 淘宝 npmmirror | 阿里巴巴 ✅ |
 | yarn | `--registry=https://registry.npmmirror.com` | 淘宝 npmmirror | 阿里巴巴 ✅ |
+| yarn2 | `--registry https://registry.npmmirror.com` | 淘宝 npmmirror | 阿里巴巴 ✅ |
+| bun | `--registry https://registry.npmmirror.com` | 淘宝 npmmirror | 阿里巴巴 ✅ |
 | pip | `-i https://pypi.tuna.tsinghua.edu.cn/simple` | 清华 PyPI | 清华大学 ✅ |
 | pip3 | `-i https://pypi.tuna.tsinghua.edu.cn/simple` | 清华 PyPI | 清华大学 ✅ |
 | uv | `--index-url https://pypi.tuna.tsinghua.edu.cn/simple` | 清华 PyPI | 清华大学 ✅ |
+| poetry | `-i https://pypi.tuna.tsinghua.edu.cn/simple` | 清华 PyPI | 清华大学 ✅ |
+| pipenv | `--pypi-mirror https://pypi.tuna.tsinghua.edu.cn/simple` | 清华 PyPI | 清华大学 ✅ |
+| conda | `-c https://mirrors.tuna.tsinghua.edu.cn/anaconda` | 清华 Anaconda | 清华大学 ✅ |
+| mamba | `-c https://mirrors.tuna.tsinghua.edu.cn/anaconda` | 清华 Anaconda | 清华大学 ✅ |
+| gem | `--source https://mirrors.tuna.tsinghua.edu.cn/rubygems/` | 清华 RubyGems | 清华大学 ✅ |
+| bundle | `--source https://mirrors.tuna.tsinghua.edu.cn/rubygems/` | 清华 RubyGems | 清华大学 ✅ |
+| flutter pub | `--server=https://pub.flutter-io.cn` | Flutter CN | Flutter 社区 ✅ |
+| dart pub | `--server=https://pub.flutter-io.cn` | Flutter CN | Flutter 社区 ✅ |
+| composer | `--repository-url=https://mirrors.aliyun.com/composer/` | 阿里云 Composer | 阿里云 ✅ |
+| nuget | `-Source https://repo.huaweicloud.com/repository/nuget/v3/index.json` | 华为云 NuGet | 华为云 ✅ |
+| dotnet | `--source https://repo.huaweicloud.com/repository/nuget/v3/index.json` | 华为云 NuGet | 华为云 ✅ |
+
+## 需要配置文件的工具
+
+这些工具不支持命令行参数，需配置文件。AI 应提示用户运行配置命令：
+
+### Rust (Cargo/Rustup)
+
+```bash
+# Cargo 镜像配置
+mkdir -p ~/.cargo
+cat > ~/.cargo/config.toml << 'EOF'
+[source.crates-io]
+replace-with = "ustc"
+
+[source.ustc]
+registry = "https://mirrors.ustc.edu.cn/crates.io-index"
+EOF
+
+# Rustup 镜像配置（添加到 ~/.bashrc 或 ~/.zshrc）
+export RUSTUP_DIST_SERVER="https://mirrors.ustc.edu.cn/rust-static"
+export RUSTUP_UPDATE_ROOT="https://mirrors.ustc.edu.cn/rust-static/rustup"
+```
+
+### Go
+
+```bash
+go env -w GOPROXY=https://goproxy.cn,https://goproxy.io,direct
+```
+
+### Docker
+
+```bash
+# Linux: 编辑 /etc/docker/daemon.json
+# macOS: 编辑 ~/.docker/daemon.json
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://mirror.ccs.tencentyun.com"
+  ]
+}
+# 重启 Docker 服务
+```
+
+### Homebrew
+
+```bash
+# 设置环境变量
+export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+```
+
+### Maven
+
+```xml
+<!-- 编辑 ~/.m2/settings.xml -->
+<mirror>
+  <id>aliyun</id>
+  <mirrorOf>central</mirrorOf>
+  <url>https://maven.aliyun.com/repository/public</url>
+</mirror>
+```
+
+### Gradle
+
+```groovy
+// 编辑 ~/.gradle/init.gradle
+allprojects {
+  repositories {
+    maven { url 'https://maven.aliyun.com/repository/public/' }
+  }
+}
+```
+
+### Anaconda/Miniconda
+
+```bash
+# 编辑 ~/.condarc
+channels:
+  - defaults
+show_channel_urls: true
+default_channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+custom_channels:
+  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+```
+
+### Julia
+
+```bash
+# 编辑 ~/.julia/config/startup.jl
+ENV["JULIA_PKG_SERVER"] = "https://mirrors.ustc.edu.cn/julia/"
+```
+
+### R (CRAN)
+
+```r
+# 在 R 中执行
+options(repos = c(CRAN = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
+```
+
+### Helm
+
+```bash
+helm repo add stable https://mirror.azure.cn/kubernetes/charts/
+helm repo add incubator https://mirror.azure.cn/kubernetes/charts-incubator/
+```
+
+### Ubuntu/Debian (apt)
+
+```bash
+# 编辑 /etc/apt/sources.list，替换为阿里云镜像
+deb https://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
+deb https://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse
+```
+
+### CentOS/RHEL (yum/dnf)
+
+```bash
+# CentOS Stream 9
+sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+    -e 's|^#baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' \
+    -i.bak /etc/yum.repos.d/centos*.repo
+```
+
+### Alpine (apk)
+
+```bash
+# 编辑 /etc/apk/repositories
+https://mirrors.aliyun.com/alpine/v3.19/main
+https://mirrors.aliyun.com/alpine/v3.19/community
+```
+
+### Arch Linux (pacman)
+
+```bash
+# 编辑 /etc/pacman.d/mirrorlist
+Server = https://mirrors.tuna.tsinghua.edu.cn/archlinux/$repo/os/$arch
+Server = https://mirrors.ustc.edu.cn/archlinux/$repo/os/$arch
+```
 
 ## 示例
 
@@ -29,38 +187,41 @@ version: 2.0.0
 | 安装 requests | `pip install requests -i https://pypi.tuna.tsinghua.edu.cn/simple` |
 | 安装 axios | `npm install axios --registry=https://registry.npmmirror.com` |
 | uv 安装 pandas | `uv pip install pandas --index-url https://pypi.tuna.tsinghua.edu.cn/simple` |
-
-## 例外情况
-
-**不添加参数的情况：**
-- 命令中已包含 `--registry`、`-i`、`--index-url` 等镜像参数
-- 用户明确指定了其他镜像源
-
-**不支持命令行参数的工具：**
-
-这些工具需要配置文件，提示用户运行配置命令：
-
-| 工具 | 配置方式 |
-|------|----------|
-| cargo/rustup | `echo '[source.crates-io]\nreplace-with = "ustc"\n[source.ustc]\nregistry = "https://mirrors.ustc.edu.cn/crates.io-index"' >> ~/.cargo/config.toml` |
-| go | `go env -w GOPROXY=https://goproxy.cn,https://goproxy.io,direct` |
-| brew | 详见清华 Homebrew 镜像文档 |
-| docker | 配置 `/etc/docker/daemon.json` |
+| 安装 numpy（conda）| `conda install numpy -c https://mirrors.tuna.tsinghua.edu.cn/anaconda` |
+| 安装 rails | `gem install rails --source https://mirrors.tuna.tsinghua.edu.cn/rubygems/` |
+| 安装 laravel | `composer require laravel/framework --repository-url=https://mirrors.aliyun.com/composer/` |
+| 安装 newtonsoft.json | `dotnet add package Newtonsoft.Json --source https://repo.huaweicloud.com/repository/nuget/v3/index.json` |
 
 ## 备选镜像源
-
-如果主镜像不可用，可使用以下备选：
 
 | 工具 | 备选镜像 | 背书方 |
 |------|----------|--------|
 | npm | `https://repo.huaweicloud.com/repository/npm/` | 华为云 ✅ |
 | pip | `https://mirrors.aliyun.com/pypi/simple/` | 阿里云 ✅ |
 | pip | `https://pypi.mirrors.ustc.edu.cn/simple/` | 中科大 ✅ |
+| pip | `https://repo.huaweicloud.com/repository/pypi/simple/` | 华为云 ✅ |
+| cargo | `https://rsproxy.cn/` | 字节跳动 ✅ |
+| cargo | `https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git` | 清华大学 ✅ |
+| go | `https://mirrors.aliyun.com/goproxy/` | 阿里云 ✅ |
+| go | `https://goproxy.io/` | 社区 ✅ |
+| docker | `https://mirror.ccs.tencentyun.com` | 腾讯云 ✅ |
+| docker | `https://hub-mirror.c.163.com` | 网易 ✅ |
 
 ## 安全声明
 
 所有列出的镜像源均为**大厂或高校背书**，安全可信：
-- 阿里巴巴、华为云、阿里云 — 大厂背书
-- 清华大学、中国科学技术大学 — 高校背书
+
+**大厂背书：**
+- 阿里巴巴（淘宝、阿里云）
+- 华为云
+- 腾讯云
+- 字节跳动
+- 网易
+- 七牛云
+
+**高校背书：**
+- 清华大学 TUNA
+- 中国科学技术大学
+- 上海交通大学
 
 **禁止使用无背书的不明镜像源。**
