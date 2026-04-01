@@ -16,6 +16,25 @@ metadata:
 
 # China Mirror — 国内镜像源自动配置
 
+## ⚠️ 核心指令（必须遵循）
+
+**在生成任何包下载命令时，必须自动添加国内镜像源参数：**
+
+| 工具 | 自动添加参数 | 镜像源 |
+|------|-------------|--------|
+| npm/pnpm/yarn | `--registry=https://registry.npmmirror.com` | 淘宝（阿里背书 ✅） |
+| pip/pip3 | `-i https://pypi.tuna.tsinghua.edu.cn/simple` | 清华（清华背书 ✅） |
+| uv | `--index-url https://pypi.tuna.tsinghua.edu.cn/simple` | 清华（清华背书 ✅） |
+
+**示例：**
+- 用户请求：`安装 lodash` → 生成：`npm install lodash --registry=https://registry.npmmirror.com`
+- 用户请求：`安装 requests` → 生成：`pip install requests -i https://pypi.tuna.tsinghua.edu.cn/simple`
+- 用户请求：`安装 axios` → 生成：`npm install axios --registry=https://registry.npmmirror.com`
+
+**例外情况：**
+- 命令中已包含 `--registry`、`-i`、`--index-url` 等镜像参数 → 不重复添加
+- cargo/brew/docker/go 等不支持命令行参数的工具 → 提示运行一键配置脚本
+
 ## 能力说明
 
 一键配置国内镜像源，解决国内下载慢的问题：
