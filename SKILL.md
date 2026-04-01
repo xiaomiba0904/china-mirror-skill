@@ -8,8 +8,13 @@ version: 3.0.0
 
 ## 核心规则
 
-1. **任何可能触发网络下载的命令**，自动添加国内镜像参数
-2. **只使用以下镜像源**，禁止使用无背书的不明镜像
+**当用户请求安装/下载包时，直接生成命令，必须包含镜像参数。**
+
+示例：
+- 用户："安装 lodash" → 生成：`npm install lodash --registry=https://registry.npmmirror.com`
+- 用户："pip 安装 requests" → 生成：`pip install requests -i https://pypi.tuna.tsinghua.edu.cn/simple`
+
+**只使用以下大厂/高校背书的镜像源，禁止使用无背书的不明镜像。**
 
 ## 可信镜像源（大厂/高校背书）
 
