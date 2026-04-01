@@ -1,7 +1,7 @@
 /**
  * China Mirror Plugin for OpenClaw
  *
- * 自动检测包下载命令，提示配置国内镜像源加速
+ * 自动检测包下载命令，自动添加国内镜像源参数加速下载
  * 支持 npm、pip、uv、cargo、brew、go 等主流包管理器
  */
 
@@ -14,72 +14,63 @@ const MIRROR_SOURCES = {
     name: "淘宝 npmmirror",
     url: "https://registry.npmmirror.com",
     backer: "阿里巴巴",
-    checkCmd: "npm config get registry",
-    setCmd: "npm config set registry https://registry.npmmirror.com",
-    patterns: [/npm\s+(install|i|add|update)\b/, /yarn\s+(install|add)\b/, /pnpm\s+(install|add)\b/],
+    paramFlag: "--registry",
+    patterns: [/npm\s+(install|i|add|update|ci)\b/, /yarn\s+(install|add)\b/, /pnpm\s+(install|add)\b/],
   },
   pip: {
     name: "清华 PyPI",
     url: "https://pypi.tuna.tsinghua.edu.cn/simple",
     backer: "清华大学",
-    checkCmd: "pip config list",
-    setCmd: "pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple",
+    paramFlag: "-i",
     patterns: [/pip\s+install\b/, /pip3\s+install\b/],
   },
   uv: {
     name: "清华 PyPI (uv)",
     url: "https://pypi.tuna.tsinghua.edu.cn/simple",
     backer: "清华大学",
-    checkCmd: "echo $UV_INDEX_URL",
-    setCmd: "export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple",
-    patterns: [/uv\s+(pip\s+install|add|sync|tool\s+install)\b/, /uv\s+run\b/],
+    paramFlag: "--index-url",
+    patterns: [/uv\s+(pip\s+install|add|sync)\b/],
   },
   cargo: {
     name: "中科大 Cargo",
     url: "https://mirrors.ustc.edu.cn/crates.io-index",
     backer: "中科大",
-    checkCmd: "cat ~/.cargo/config.toml 2>/dev/null || echo 'not configured'",
-    setCmd: "echo '[source.crates-io]\nreplace-with = \"ustc\"\n[source.ustc]\nregistry = \"https://mirrors.ustc.edu.cn/crates.io-index\"' > ~/.cargo/config.toml",
+    paramFlag: null, // cargo 不支持命令行参数，需配置文件
     patterns: [/cargo\s+(install|update|build)\b/],
   },
   rustup: {
     name: "中科大 Rustup",
     url: "https://mirrors.ustc.edu.cn/rust-static",
     backer: "中科大",
-    checkCmd: "echo $RUSTUP_DIST_SERVER",
-    setCmd: "export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static && export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup",
+    paramFlag: null,
     patterns: [/rustup\s+/],
   },
   go: {
     name: "七牛云 GoProxy",
     url: "https://goproxy.cn",
     backer: "七牛云",
-    checkCmd: "go env GOPROXY",
-    setCmd: "go env -w GOPROXY=https://goproxy.cn,https://goproxy.io,direct",
+    paramFlag: null, // go 依赖 GOPROXY 环境变量
     patterns: [/go\s+(get|install|mod\s+download)\b/],
   },
   brew: {
     name: "清华 Homebrew",
     url: "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/",
     backer: "清华大学",
-    checkCmd: "brew config | grep HOMEBREW_API_DOMAIN",
-    setCmd: "# 参见 SKILL.md 中的完整配置脚本",
+    paramFlag: null,
     patterns: [/brew\s+(install|upgrade|update)\b/],
   },
   docker: {
     name: "中科大 Docker",
     url: "https://docker.mirrors.ustc.edu.cn",
     backer: "中科大",
-    checkCmd: "cat /etc/docker/daemon.json 2>/dev/null || cat ~/.docker/daemon.json 2>/dev/null || echo 'not configured'",
-    setCmd: "# 需编辑 /etc/docker/daemon.json 或 ~/.docker/daemon.json",
+    paramFlag: null,
     patterns: [/docker\s+(pull|build)\b/],
   },
   maven: {
     name: "阿里云 Maven",
     url: "https://maven.aliyun.com/repository/public",
     backer: "阿里巴巴",
-    checkCmd: "cat ~/.m2/settings.xml 2>/dev/null | grep -A5 '<mirror>' || echo 'not configured'",
-    setCmd: "# 需编辑 ~/.m2/settings.xml",
+    paramFlag: null,
     patterns: [/mvn\s+/],
   },
 };
@@ -88,7 +79,7 @@ const MIRROR_SOURCES = {
 const MIRROR_CONFIGURED_PATTERNS = {
   npm: [/registry\.npmmirror\.com/, /repo\.huaweicloud\.com\/repository\/npm/],
   pip: [/pypi\.tuna\.tsinghua\.edu\.cn/, /mirrors\.aliyun\.com\/pypi/, /pypi\.mirrors\.ustc\.edu\.cn/],
-  uv: [/pypi\.tuna\.tsinghua\.edu\.cn/, /mirrors\.aliyun\.com\/pypi/, /UV_INDEX_URL=/],
+  uv: [/pypi\.tuna\.tsinghua\.edu\.cn/, /mirrors\.aliyun\.com\/pypi/],
   cargo: [/mirrors\.ustc\.edu\.cn\/crates\.io-index/, /rsproxy\.cn/],
   go: [/goproxy\.cn/, /goproxy\.io/, /mirrors\.aliyun\.com\/goproxy/],
 };
@@ -98,8 +89,9 @@ interface MirrorHint {
   mirrorName: string;
   mirrorUrl: string;
   backer: string;
-  setCmd: string;
-  alreadyConfigured: boolean;
+  originalCommand: string;
+  modifiedCommand: string | null; // null 表示无法通过参数修改
+  canModify: boolean;
 }
 
 /**
@@ -111,19 +103,20 @@ function detectPackageDownload(command: string): MirrorHint | null {
       if (pattern.test(command)) {
         // 检查是否已指定镜像参数
         if (isMirrorSpecified(command, tool)) {
-          return null; // 已指定镜像，不需要提示
+          return null; // 已指定镜像，不需要处理
         }
 
-        // 检查是否已配置全局镜像
-        const alreadyConfigured = checkGlobalMirrorConfig(command, tool);
+        // 生成带镜像参数的命令
+        const modifiedCommand = generateCommandWithMirror(command, tool, config.url, config.paramFlag);
 
         return {
           tool,
           mirrorName: config.name,
           mirrorUrl: config.url,
           backer: config.backer,
-          setCmd: config.setCmd,
-          alreadyConfigured,
+          originalCommand: command,
+          modifiedCommand,
+          canModify: config.paramFlag !== null,
         };
       }
     }
@@ -139,60 +132,87 @@ function isMirrorSpecified(command: string, tool: string): boolean {
     case "npm":
       return command.includes("--registry=") || command.includes("--registry ");
     case "pip":
-      return command.includes("-i ") || command.includes("--index-url ");
+      return command.includes("-i ") || command.includes("--index-url ") || command.includes("--index-url=");
     case "uv":
-      return command.includes("--index-url ") || command.includes("--extra-index-url ");
+      return command.includes("--index-url ") || command.includes("--index-url=") || command.includes("--extra-index-url ");
     case "cargo":
-      return false; // cargo 不支持命令行指定镜像
+    case "rustup":
     case "go":
-      return command.includes("GOPROXY=");
+    case "brew":
+    case "docker":
+    case "maven":
+      return false; // 这些工具不支持命令行镜像参数
     default:
       return false;
   }
 }
 
 /**
- * 检查是否已配置全局镜像（通过命令参数推断）
+ * 生成带镜像参数的命令
  */
-function checkGlobalMirrorConfig(command: string, tool: string): boolean {
-  const patterns = MIRROR_CONFIGURED_PATTERNS[tool as keyof typeof MIRROR_CONFIGURED_PATTERNS];
-  if (!patterns) return false;
-
-  for (const pattern of patterns) {
-    if (pattern.test(command)) {
-      return true;
-    }
+function generateCommandWithMirror(
+  command: string,
+  tool: string,
+  mirrorUrl: string,
+  paramFlag: string | null
+): string | null {
+  if (!paramFlag) {
+    return null; // 不支持命令行参数
   }
-  return false;
+
+  // 根据工具类型添加参数
+  switch (tool) {
+    case "npm":
+      // npm/pnpm/yarn 使用 --registry
+      return `${command} --registry=${mirrorUrl}`;
+    case "pip":
+      // pip 使用 -i
+      return `${command} -i ${mirrorUrl}`;
+    case "uv":
+      // uv 使用 --index-url
+      return `${command} --index-url ${mirrorUrl}`;
+    default:
+      return null;
+  }
 }
 
 /**
  * 生成镜像提示消息
  */
 function generateMirrorHint(hint: MirrorHint): string {
-  if (hint.alreadyConfigured) {
-    return `✅ 检测到 ${hint.tool} 已配置 ${hint.mirrorName} 镜像源 (${hint.backer}背书)`;
+  if (hint.canModify && hint.modifiedCommand) {
+    // 可以自动添加镜像参数
+    return [
+      `🔄 已自动添加国内镜像源参数加速下载：`,
+      ``,
+      `**原命令：**`,
+      `\`\`\`bash`,
+      hint.originalCommand,
+      `\`\`\``,
+      ``,
+      `**修改后：**`,
+      `\`\`\`bash`,
+      hint.modifiedCommand,
+      `\`\`\``,
+      ``,
+      `**镜像源：** ${hint.mirrorName}（${hint.backer}背书 ✅）`,
+      ``,
+      `请使用修改后的命令执行。`,
+    ].join("\n");
+  } else {
+    // 需要配置文件
+    return [
+      `💡 此命令需要下载，建议先配置镜像源：`,
+      ``,
+      `**工具：** ${hint.tool}`,
+      `**推荐镜像：** ${hint.mirrorName}（${hint.backer}背书 ✅）`,
+      ``,
+      `运行一键配置脚本：`,
+      `\`\`\`bash`,
+      `~/.agents/skills/china-mirror/scripts/setup-all.sh`,
+      `\`\`\``,
+    ].join("\n");
   }
-
-  const hintLines = [
-    `💡 检测到 ${hint.tool} 包下载命令`,
-    ``,
-    `推荐配置国内镜像源加速下载：`,
-    `- 镜像源: ${hint.mirrorName} (${hint.mirrorUrl})`,
-    `- 背书方: ${hint.backer} ✅ 可信`,
-    ``,
-    `配置命令:`,
-    `\`\`\`bash`,
-    hint.setCmd,
-    `\`\`\``,
-    ``,
-    `或运行一键配置脚本:`,
-    `\`\`\`bash`,
-    `~/.agents/skills/china-mirror/scripts/setup-all.sh`,
-    `\`\`\``,
-  ];
-
-  return hintLines.join("\n");
 }
 
 /**
@@ -201,7 +221,7 @@ function generateMirrorHint(hint: MirrorHint): string {
 export default definePluginEntry({
   id: "china-mirror",
   name: "China Mirror",
-  description: "自动检测包下载命令，提示配置国内镜像源加速",
+  description: "自动检测包下载命令，自动添加国内镜像源参数",
 
   configSchema: {
     type: "object",
@@ -210,6 +230,11 @@ export default definePluginEntry({
         type: "boolean",
         default: true,
         description: "启用镜像源检测",
+      },
+      autoModify: {
+        type: "boolean",
+        default: true,
+        description: "自动添加镜像参数到命令",
       },
       showHint: {
         type: "boolean",
@@ -226,8 +251,14 @@ export default definePluginEntry({
   },
 
   register(api: OpenClawPluginApi) {
-    const config = api.pluginConfig as { enabled?: boolean; showHint?: boolean; silent?: boolean };
+    const config = api.pluginConfig as {
+      enabled?: boolean;
+      autoModify?: boolean;
+      showHint?: boolean;
+      silent?: boolean;
+    };
     const enabled = config.enabled !== false;
+    const autoModify = config.autoModify !== false;
     const showHint = config.showHint !== false;
     const silent = config.silent === true;
 
@@ -261,17 +292,25 @@ export default definePluginEntry({
           return {}; // 不是包下载命令，继续执行
         }
 
-        const message = generateMirrorHint(hint);
-
         if (silent) {
           api.logger.info(`[China Mirror] ${hint.tool} download detected: ${hint.mirrorName}`);
           return {}; // 静默模式，继续执行
         }
 
-        if (showHint) {
-          // 返回提示消息，继续执行
+        if (autoModify && hint.canModify && hint.modifiedCommand) {
+          // 自动修改命令
+          api.logger.info(`[China Mirror] Auto-modifying command with mirror: ${hint.tool} -> ${hint.mirrorName}`);
+
+          // 返回提示消息，让 AI 使用修改后的命令
           return {
-            message,
+            message: generateMirrorHint(hint),
+          };
+        }
+
+        if (showHint) {
+          // 显示提示
+          return {
+            message: generateMirrorHint(hint),
           };
         }
 
@@ -303,7 +342,14 @@ export default definePluginEntry({
               content: [
                 {
                   type: "text",
-                  text: `运行一键配置脚本:\n\`\`\`bash\n~/.agents/skills/china-mirror/scripts/setup-all.sh\n\`\`\``,
+                  text: [
+                    `# 配置国内镜像源`,
+                    ``,
+                    `运行一键配置脚本：`,
+                    `\`\`\`bash`,
+                    `~/.agents/skills/china-mirror/scripts/setup-all.sh`,
+                    `\`\`\``,
+                  ].join("\n"),
                 },
               ],
             };
@@ -312,7 +358,14 @@ export default definePluginEntry({
               content: [
                 {
                   type: "text",
-                  text: `恢复默认配置:\n\`\`\`bash\n~/.agents/skills/china-mirror/scripts/restore-default.sh\n\`\`\``,
+                  text: [
+                    `# 恢复默认配置`,
+                    ``,
+                    `运行恢复脚本：`,
+                    `\`\`\`bash`,
+                    `~/.agents/skills/china-mirror/scripts/restore-default.sh`,
+                    `\`\`\``,
+                  ].join("\n"),
                 },
               ],
             };
@@ -321,7 +374,15 @@ export default definePluginEntry({
               content: [
                 {
                   type: "text",
-                  text: `用法: /mirror [status|setup|restore]\n- status: 查看当前镜像配置\n- setup: 配置国内镜像源\n- restore: 恢复默认配置`,
+                  text: [
+                    `# /mirror 命令`,
+                    ``,
+                    `用法: \`/mirror [status|setup|restore]\``,
+                    ``,
+                    `- \`status\` - 查看当前镜像配置`,
+                    `- \`setup\` - 配置国内镜像源`,
+                    `- \`restore\` - 恢复默认配置`,
+                  ].join("\n"),
                 },
               ],
             };
@@ -338,20 +399,25 @@ export default definePluginEntry({
  */
 function generateStatusReport(): string {
   const lines = [
-    "# 镜像源配置状态",
-    "",
-    "支持的镜像源（均为大厂/高校背书）:",
-    "",
-    "| 工具 | 镜像源 | 背书方 |",
-    "|------|--------|--------|",
+    `# 镜像源配置状态`,
+    ``,
+    `支持的镜像源（均为大厂/高校背书）：`,
+    ``,
+    `| 工具 | 镜像源 | 背书方 | 支持命令行参数 |`,
+    `|------|--------|--------|----------------|`,
   ];
 
   for (const [tool, config] of Object.entries(MIRROR_SOURCES)) {
-    lines.push(`| ${tool} | ${config.name} | ${config.backer} |`);
+    const canModify = config.paramFlag !== null ? "✅" : "❌";
+    lines.push(`| ${tool} | ${config.name} | ${config.backer} | ${canModify} |`);
   }
 
   lines.push("");
-  lines.push("查看当前配置:");
+  lines.push("**说明：**");
+  lines.push("- ✅ 支持命令行参数：执行命令时自动添加镜像参数");
+  lines.push("- ❌ 需配置文件：运行 `~/.agents/skills/china-mirror/scripts/setup-all.sh` 一键配置");
+  lines.push("");
+  lines.push("查看当前配置：");
   lines.push("```bash");
   lines.push("~/.agents/skills/china-mirror/scripts/show-status.sh");
   lines.push("```");

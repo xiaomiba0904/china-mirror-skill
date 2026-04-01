@@ -317,11 +317,37 @@ cargo add serde
 
 ## 自动镜像检查（Hook 功能）
 
-本 skill 提供两种平台的 Hook 实现，自动检测包下载命令并提示镜像配置。
+本 skill 提供两种平台的 Hook 实现，**AI 自动判断并添加镜像源参数**，无需手动配置。
+
+### 工作原理
+
+1. **AI 判断**：执行命令前，AI 分析命令是否触发包下载
+2. **自动添加参数**：对于 npm/pip/uv 等工具，AI 自动在命令中添加镜像参数
+3. **配置提示**：对于 cargo/brew/docker 等需配置文件的工具，提示运行一键配置脚本
+
+### 支持命令行参数的工具
+
+| 工具 | 镜像参数 | 示例 |
+|------|----------|------|
+| npm/pnpm/yarn | `--registry=URL` | `npm install lodash --registry=https://registry.npmmirror.com` |
+| pip/pip3 | `-i URL` | `pip install requests -i https://pypi.tuna.tsinghua.edu.cn/simple` |
+| uv | `--index-url URL` | `uv pip install requests --index-url https://pypi.tuna.tsinghua.edu.cn/simple` |
+
+### 需配置文件的工具
+
+这些工具不支持命令行参数，需运行一键配置脚本：
+
+| 工具 | 配置文件 |
+|------|----------|
+| cargo/rustup | `~/.cargo/config.toml` + 环境变量 |
+| brew | 环境变量 |
+| docker | `/etc/docker/daemon.json` |
+| go | `go env GOPROXY` |
+| maven | `~/.m2/settings.xml` |
 
 ### Claude Code Hook (PreToolUse)
 
-在 `~/.claude/settings.json` 中配置：
+在 `~/.claude/settings.json` 中配置，AI 自动分析命令并添加镜像参数：
 
 ```json
 {
@@ -332,7 +358,7 @@ cargo add serde
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "检测命令是否触发包下载（npm/pip/uv/cargo/brew/go/docker等），如未配置镜像则提示用户使用国内镜像源加速。镜像源均为大厂背书（清华/阿里/中科大/七牛），可信安全。"
+            "prompt": "分析命令是否触发包下载，自动添加国内镜像源参数..."
           }
         ]
       }
@@ -350,18 +376,20 @@ OpenClaw 使用 Plugin SDK 实现 Hook，位于 `plugin/` 目录：
 api.registerHook(["before_tool_call"], async (event) => {
   if (event.toolName === "exec" || event.toolName === "process") {
     // 检测包下载命令
-    // 显示镜像提示，继续执行
+    // 自动生成带镜像参数的命令
+    // 返回提示：原命令 vs 修改后命令
   }
 });
 ```
 
-**关键区别：**
-| 平台 | Hook 类型 | 配置方式 | 行为 |
-|------|-----------|----------|------|
-| Claude Code | PreToolUse | JSON + prompt | 提示后继续执行 |
-| OpenClaw | before_tool_call | TypeScript Plugin | 提示后继续执行 |
+### Hook 行为对比
 
-**设计原则：** 所有镜像源均为大厂/高校背书（阿里巴巴、清华大学、中科大、七牛云等），安全可信。Hook 仅提供友好提示，不干预命令执行。
+| 平台 | Hook 类型 | 行为 |
+|------|-----------|------|
+| Claude Code | PreToolUse | AI 分析命令，提示修改后的命令 |
+| OpenClaw | before_tool_call | Plugin 检测，返回原命令和修改后命令对比 |
+
+**设计原则：** 所有镜像源均为大厂/高校背书（阿里巴巴、清华大学、中科大、七牛云等），安全可信。
 
 ### 会触发镜像提醒的命令
 
