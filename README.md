@@ -21,10 +21,33 @@
 
 ## 安装
 
+### Claude Code
+
 ```bash
+# 克隆仓库
 git clone https://github.com/xiaomiba0904/china-mirror-skill.git
-mkdir -p ~/.agents/skills && ln -s $(pwd)/china-mirror-skill ~/.agents/skills/china-mirror
+
+# 安装到 Claude Code skills 目录
+mkdir -p ~/.agents/skills
+ln -s $(pwd)/china-mirror-skill ~/.agents/skills/china-mirror
+
+# 可选：创建符号链接到 .claude/skills
+mkdir -p ~/.claude/skills
+ln -s ~/.agents/skills/china-mirror ~/.claude/skills/china-mirror
 ```
+
+### OpenClaw
+
+```bash
+# 克隆仓库
+git clone https://github.com/xiaomiba0904/china-mirror-skill.git
+
+# 安装到 OpenClaw skills 目录
+mkdir -p ~/.openclaw/skills
+ln -s $(pwd)/china-mirror-skill ~/.openclaw/skills/china-mirror
+```
+
+安装后，重启 Claude Code 或 OpenClaw 即可生效。AI 会在生成下载命令时自动添加镜像参数。
 
 ## 效果对比
 
