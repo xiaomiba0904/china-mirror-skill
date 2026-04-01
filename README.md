@@ -47,8 +47,6 @@ mkdir -p ~/.openclaw/skills
 ln -s $(pwd)/china-mirror-skill ~/.openclaw/skills/china-mirror
 ```
 
-安装后，开始新会话即可生效。AI 会在生成下载命令时自动添加镜像参数。
-
 ## 效果对比
 
 | 场景 | 未使用镜像 | 使用镜像 |
