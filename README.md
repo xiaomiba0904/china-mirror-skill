@@ -6,12 +6,34 @@
 
 **AI 生成命令时自动添加国内镜像源参数。** 所有镜像源均为大厂/高校背书。
 
+## 为什么需要这个 Skill？
+
+在使用 **OpenClaw** 或 **Claude Code** 执行任务时，你是否遇到过：
+
+- ❌ 安装依赖时网络超时，任务失败
+- ❌ 下载包速度极慢，等待数分钟甚至更久
+- ❌ 构建环境时因网络问题反复重试
+- ❌ 浪费大量时间和 Token 在等待下载上
+
+**原因：** AI 执行任务时经常需要下载包来构建运行环境（npm install、pip install、docker pull 等），而国内访问海外源速度慢、不稳定，导致任务超时失败。
+
+**解决方案：** 让 AI 在生成命令时自动使用国内镜像源，大幅加速下载，减少任务失败率。
+
 ## 安装
 
 ```bash
 git clone https://github.com/xiaomiba0904/china-mirror-skill.git
 mkdir -p ~/.agents/skills && ln -s $(pwd)/china-mirror-skill ~/.agents/skills/china-mirror
 ```
+
+## 效果对比
+
+| 场景 | 未使用镜像 | 使用镜像 |
+|------|-----------|----------|
+| npm install | 超时/数分钟 | 几秒完成 |
+| pip install | 经常失败 | 稳定快速 |
+| docker pull | 极慢 | 秒级拉取 |
+| pyenv install | 可能超时 | 稳定下载 |
 
 ## 支持范围
 
