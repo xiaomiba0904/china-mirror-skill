@@ -70,11 +70,45 @@ version: 3.0.0
 ## 判断逻辑
 
 AI 生成命令时，自动判断：
-1. 是否涉及网络下载？（安装包、更新、拉取镜像、克隆仓库等）
-2. 是否支持命令行镜像参数？
-   - 支持 → 直接添加参数
-   - 不支持 → 提示用户配置环境变量
-3. 命令中是否已有镜像参数？有则跳过
+
+### 1. 是否涉及网络下载？
+
+**直接下载命令：**
+- 包安装：`npm install`, `pip install`, `gem install`, `composer require`...
+- 版本安装：`pyenv install`, `nvm install`, `rustup toolchain install`...
+- 镜像拉取：`docker pull`, `docker build`...
+- 仓库克隆：`git clone`（GitHub 可提示使用代理）
+- 系统更新：`apt install`, `brew install`, `apk add`...
+
+**间接触发下载的命令：**
+- `npm run` / `yarn run` / `pnpm run` — 依赖缺失时自动下载
+- `npm test` / `npm start` / `npm build` — 同上
+- `npx <package>` — 临时下载执行
+- `uv run` — 自动安装依赖
+- `cargo build` / `cargo run` — 首次构建下载依赖
+- `go build` / `go run` — 下载模块依赖
+
+**判断原则：**
+- 如果命令可能触发网络请求，且环境未配置镜像 → 提示配置镜像
+- 如果用户已配置镜像环境变量 → 正常执行
+
+### 2. 如何添加镜像？
+
+**支持命令行参数：**
+```
+npm install pkg --registry=https://registry.npmmirror.com
+pip install pkg -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+**不支持命令行参数：**
+- 提示用户配置环境变量（如 `GOPROXY`, `NVM_NODEJS_ORG_MIRROR`）
+- 或在命令前临时设置：`NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node/ nvm install 20`
+
+### 3. 跳过情况
+
+- 命令中已有镜像参数 → 跳过
+- 用户明确指定其他源 → 跳过
+- 纯本地命令（无网络请求）→ 跳过
 
 ## 安全声明
 
