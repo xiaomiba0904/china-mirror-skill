@@ -39,6 +39,22 @@
 | apk (Alpine) | 阿里云 | 阿里云 ✅ |
 | pacman (Arch) | 清华/中科大 | 高校 ✅ |
 
+### 版本管理工具
+
+| 工具 | 用途 | 镜像源 | 背书方 |
+|------|------|--------|--------|
+| pyenv | Python 版本 | 清华/中科大 | 高校 ✅ |
+| nvm | Node.js 版本 | 淘宝 npmmirror | 阿里巴巴 ✅ |
+| fnm | Node.js 版本 | 淘宝 npmmirror | 阿里巴巴 ✅ |
+| volta | Node.js 版本 | 淘宝 npmmirror | 阿里巴巴 ✅ |
+| rbenv | Ruby 版本 | 清华 | 清华大学 ✅ |
+| gvm | Go 版本 | 中科大 | 中国科学技术大学 ✅ |
+| sdkman | 多语言版本 | 清华 | 清华大学 ✅ |
+| tfenv | Terraform 版本 | 清华 | 清华大学 ✅ |
+| tgenv | Terragrunt 版本 | 清华 | 清华大学 ✅ |
+| asdf | 多语言版本 | 清华/淘宝/中科大 | 高校/大厂 ✅ |
+| coursier | Scala/Java 版本 | 阿里云 | 阿里云 ✅ |
+
 ## 安装
 
 ### Claude Code

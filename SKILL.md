@@ -1,7 +1,7 @@
 ---
 name: china-mirror
-description: "国内镜像源加速。生成包下载命令时自动添加大厂/高校背书的可信镜像参数。触发：安装包、下载依赖、npm/pip/uv/cargo/go/docker/maven/nuget 等包管理操作。"
-version: 2.1.0
+description: "国内镜像源加速。生成包下载命令时自动添加大厂/高校背书的可信镜像参数。触发：安装包、下载依赖、npm/pip/uv/cargo/go/docker/maven/nuget/pyenv/nvm 等包管理/版本管理操作。"
+version: 2.2.0
 ---
 
 # China Mirror — 国内镜像源自动添加
@@ -177,6 +177,104 @@ https://mirrors.aliyun.com/alpine/v3.19/community
 # 编辑 /etc/pacman.d/mirrorlist
 Server = https://mirrors.tuna.tsinghua.edu.cn/archlinux/$repo/os/$arch
 Server = https://mirrors.ustc.edu.cn/archlinux/$repo/os/$arch
+```
+
+## 版本管理工具镜像配置
+
+这些工具用于安装语言/工具的特定版本，下载速度慢，需要配置镜像环境变量。
+
+### pyenv (Python 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export PYTHON_BUILD_MIRROR_URL="https://mirrors.tuna.tsinghua.edu.cn/python-build/"
+# 或使用中科大镜像
+export PYTHON_BUILD_MIRROR_URL="https://mirrors.ustc.edu.cn/python-build/"
+```
+
+### nvm (Node.js 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node/
+export NVM_IOJS_ORG_MIRROR=https://npmmirror.com/mirrors/iojs/
+```
+
+### fnm (Node.js 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export FNM_NODE_DIST_MIRROR=https://npmmirror.com/mirrors/node/
+```
+
+### volta (Node.js 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export VOLTA_NODE_MIRROR=https://npmmirror.com/mirrors/node/
+```
+
+### rbenv/ruby-build (Ruby 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export RUBY_BUILD_MIRROR_URL="https://mirrors.tuna.tsinghua.edu.cn/ruby-build/"
+```
+
+### gvm (Go 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export GO_BINARY_BASE_URL="https://mirrors.ustc.edu.cn/golang/"
+```
+
+### sdkman (多语言版本管理)
+
+```bash
+# 编辑 ~/.sdkman/etc/config
+sdkman_candidates_mirror=https://mirrors.tuna.tsinghua.edu.cn/sdkman/
+```
+
+### tfenv (Terraform 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export TFENV_TERRAFORM_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/terraform/
+```
+
+### tgenv (Terragrunt 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export TGENV_TERRAGRUNT_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/terragrunt/
+```
+
+### asdf (多语言版本管理)
+
+```bash
+# Node.js 插件
+export ASDF_NODEJS_NODE_ORG_MIRROR=https://npmmirror.com/mirrors/node/
+
+# Python 插件
+export ASDF_PYTHON_MIRROR_URL="https://mirrors.tuna.tsinghua.edu.cn/python-build/"
+
+# Go 插件
+export ASDF_GOLANG_MIRROR_URL="https://mirrors.ustc.edu.cn/golang/"
+```
+
+### jenv (Java 版本管理)
+
+jenv 不直接下载 JDK，需配合 SDKMAN 或手动配置：
+```bash
+# 使用 sdkman 安装 Java
+sdk install java 17.0.1-tem
+```
+
+### coursier (Scala/Java 版本管理)
+
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+export COURSIER_REPOSITORIES="https://maven.aliyun.com/repository/public|central"
 ```
 
 ## 示例
