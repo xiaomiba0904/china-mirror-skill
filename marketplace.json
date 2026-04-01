@@ -2,11 +2,11 @@
   "name": "china-mirror",
   "version": "1.0.0",
   "description": "自动配置国内镜像源加速工具，支持 npm、pip、uv、cargo、rustup、docker、homebrew、maven、gradle、go、nuget 等主流包管理器",
-  "author": "gehanbin",
+  "author": "xiaomiba0904",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gehanbin/china-mirror-skill"
+    "url": "https://github.com/xiaomiba0904/china-mirror-skill"
   },
   "keywords": [
     "mirror",

@@ -1,7 +1,7 @@
 # China Mirror Skill 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue.svg)](https://github.com/gehanbin/china-mirror-skill)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue.svg)](https://github.com/xiaomiba0904/china-mirror-skill)
 
 一键配置国内镜像源，解决国内下载慢的问题。支持 11 种主流包管理器，所有镜像源均为**大厂/高校背书**，安全可靠。
 
@@ -34,7 +34,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/gehanbin/china-mirror-skill.git
+git clone https://github.com/xiaomiba0904/china-mirror-skill.git
 
 # 安装到 Claude Code
 mkdir -p ~/.agents/skills

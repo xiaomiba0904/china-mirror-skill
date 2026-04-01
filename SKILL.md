@@ -1,9 +1,17 @@
 ---
 name: china-mirror
-description: >
-  自动配置国内镜像源加速工具。支持 npm、pip/pypi/uv、docker、homebrew、maven、gradle、nuget、go、cargo/rustup 等主流包管理器的镜像源配置。
-  一键切换到国内镜像（淘宝/清华/阿里云/中科大等），大幅提升下载速度。
-  触发条件：用户提到"镜像"、"国内源"、"加速下载"、"npm慢"、"pip慢"、"uv慢"、"cargo慢"等关键词。
+description: "自动配置国内镜像源加速工具，支持 npm/pip/uv/docker/homebrew/maven/gradle/nuget/go/cargo/rustup 等主流包管理器。触发条件：用户提到镜像、国内源、加速下载、npm慢、pip慢、uv慢、cargo慢等关键词。"
+version: 1.0.0
+metadata:
+  {
+    "openclaw":
+      {
+        "requires": { "bins": ["npm", "pip"], "env": ["UV_INDEX_URL"], "anyBins": ["npm", "pip", "uv", "cargo", "go", "brew"] },
+        "emoji": "🌐",
+        "homepage": "https://github.com/xiaomiba0904/china-mirror-skill",
+        "os": ["darwin", "linux"]
+      }
+  }
 ---
 
 # China Mirror — 国内镜像源自动配置
@@ -309,7 +317,51 @@ cargo add serde
 
 ## 自动镜像检查（Hook 功能）
 
-本 skill 已配置 PreToolUse Hook，会在执行 Bash 命令前自动检查是否需要使用国内镜像。
+本 skill 提供两种平台的 Hook 实现，自动检测包下载命令并提示镜像配置。
+
+### Claude Code Hook (PreToolUse)
+
+在 `~/.claude/settings.json` 中配置：
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "检测命令是否触发包下载（npm/pip/uv/cargo/brew/go/docker等），如未配置镜像则提示用户使用国内镜像源加速。镜像源均为大厂背书（清华/阿里/中科大/七牛），可信安全。"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### OpenClaw Hook (before_tool_call)
+
+OpenClaw 使用 Plugin SDK 实现 Hook，位于 `plugin/` 目录：
+
+```typescript
+// plugin/src/index.ts
+api.registerHook(["before_tool_call"], async (event) => {
+  if (event.toolName === "exec" || event.toolName === "process") {
+    // 检测包下载命令
+    // 显示镜像提示，继续执行
+  }
+});
+```
+
+**关键区别：**
+| 平台 | Hook 类型 | 配置方式 | 行为 |
+|------|-----------|----------|------|
+| Claude Code | PreToolUse | JSON + prompt | 提示后继续执行 |
+| OpenClaw | before_tool_call | TypeScript Plugin | 提示后继续执行 |
+
+**设计原则：** 所有镜像源均为大厂/高校背书（阿里巴巴、清华大学、中科大、七牛云等），安全可信。Hook 仅提供友好提示，不干预命令执行。
 
 ### 会触发镜像提醒的命令
 
