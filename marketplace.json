@@ -1,7 +1,7 @@
 {
   "name": "china-mirror",
-  "version": "1.0.0",
-  "description": "自动配置国内镜像源加速工具，支持 npm、pip、uv、cargo、rustup、docker、homebrew、maven、gradle、go、nuget 等主流包管理器",
+  "version": "2.0.0",
+  "description": "国内镜像源自动添加。AI 生成包下载命令时自动添加大厂/高校背书的可信镜像参数。",
   "author": "xiaomiba0904",
   "license": "MIT",
   "repository": {
@@ -13,14 +13,10 @@
     "china",
     "npm",
     "pip",
-    "cargo",
-    "docker",
+    "uv",
     "加速",
     "镜像源"
   ],
   "category": "devtools",
-  "supportedPlatforms": ["macos", "linux"],
-  "requirements": {
-    "shell": "bash"
-  }
+  "supportedPlatforms": ["macos", "linux"]
 }
